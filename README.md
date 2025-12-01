@@ -7,6 +7,7 @@
   <a href="https://opengelab.github.io/"><img src="https://img.shields.io/badge/🌐%20Website-Project%20Page-blue" alt="Website" /></a>
   <a href="https://huggingface.co/stepfun-ai/GELab-Zero-4B-preview"><img src="https://img.shields.io/badge/🤗%20Hugging%20Face-GELab--Zero--4B--preview-orange" alt="Hugging Face Model" /></a>
   <a href="https://huggingface.co/stepfun-ai/AndroidDaily"><img src="https://img.shields.io/badge/📚%20Hugging%20Face-AndroidDaily-yellow" alt="Hugging Face Dataset" /></a>
+  <a href="https://modelscope.cn/models/stepfun-ai/GELab-Zero-4B-preview"><img src="https://img.shields.io/badge/🤖%20Model%20Scope-GELab--Zero--4B--preview-blue" alt="Model Scope" /></a>
 </p>
 
 <p align="center">
@@ -17,7 +18,7 @@
 ## 📰 News
 
 * 🎁 **[Coming Soon...]**
-* 🎁 **[2025-11]** We release a lightweight [**4B model**](https://huggingface.co/stepfun-ai/GELab-Zero-4B-preview).
+* 🎁 **[2025-11]** We release a lightweight **4B model** on [**Hugging Face**](https://huggingface.co/stepfun-ai/GELab-Zero-4B-preview) and [**Model Scope**](https://modelscope.cn/models/stepfun-ai/GELab-Zero-4B-preview).
 * 🎁 **[2025-11]** We release the tasks from the [**AndroidDaily**](https://huggingface.co/stepfun-ai/AndroidDaily) benchmark.
 * 🎁 **[2025-11]** We release the current **GELab-Zero** engineering infrastructure.
 * 🎁 **[2025-10]** Our [research paper](https://openreview.net/pdf/ce35fb684e3b11b9c0f1fcc38598cfb3504c728e.pdf) on **Multi-Turn RL** is accepted by **NeurIPS 2025**.
