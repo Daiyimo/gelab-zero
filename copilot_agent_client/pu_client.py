@@ -86,9 +86,10 @@ def reply_info_action(current_image_url, task, info_action, model_provider, mode
 # rollout config
 # device info
 # def evaluate_task_on_device(agent_server, device_info, task, frontend_action_converter, ask_action_function_func, max_steps = 40, delay_after_capture = 2):
-def evaluate_task_on_device(agent_server, device_info, task, rollout_config, extra_info = {}, reflush_app=True):
+def evaluate_task_on_device(agent_server, device_info, task, rollout_config, extra_info = {}, reflush_app=True, auto_reply = False):
     """
     Evaluate a task on a device using the provided frontend action converter and action function.
+
     """
 
     # init device for the first time
@@ -147,7 +148,18 @@ def evaluate_task_on_device(agent_server, device_info, task, rollout_config, ext
         }
         if history_actions[-1]['action_type'] == "INFO" if len(history_actions) > 0 else False:
             info_action = history_actions[-1]
-            reply_info = reply_info_action(image_b64_url, task, info_action)
+
+            if auto_reply:
+                print(f"AUTO REPLY INFO FROM MODEL!")
+                reply_info = reply_info_action(image_b64_url, task, info_action, model_provider=rollout_config['model_config']['model_provider'], model_name=rollout_config['model_config']['model_name'])
+                print(f"info: {reply_info}")
+            
+            else:
+                print(f"EN: Agent asks: {history_actions[-1]['value']} Please Reply: ")
+                print(f"ZH: Agent 问你: {history_actions[-1]['value']} 回复一下：")
+
+                reply_info = input("Your reply:")
+
             print(f"Replied info action: {reply_info}")
 
             payload['observation']['query'] = reply_info

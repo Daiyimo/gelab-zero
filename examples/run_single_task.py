@@ -56,7 +56,12 @@ if __name__ == "__main__":
 
     l2_server = LocalServer(tmp_server_config)
 
+    # Disable auto reply
     evaluate_task_on_device(l2_server, device_info, task, tmp_rollout_config, reflush_app=True)
+
+    # Enable auto reply
+    # evaluate_task_on_device(l2_server, device_info, task, tmp_rollout_config, reflush_app=True, auto_reply=True)
+
 
 
     pass
