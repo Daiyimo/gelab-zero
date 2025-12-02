@@ -460,6 +460,102 @@ The action with point(s) such as click and slide will be marked on the screensho
 
 ---
 
+### (Optional) Deploy with llama.cpp
+
+> Make sure you have already downloaded the GELab-Zero-4B-preview model locally.
+
+#### Step 1: Convert the model to GGUF format with llama.cpp
+
+Clone the official llama.cpp repository:
+
+```bash
+git clone https://github.com/ggerganov/llama.cpp.git 
+cd llama.cpp
+pip install -r requirements.txt
+# If there are dependency conflicts, create a Conda virtual environment.
+```
+
+Convert the model to GGUF format. Command-line arguments:
+
+1. The first path points to your locally downloaded GELab-Zero-4B-preview from Hugging Face.
+2. `--outtype` specifies the quantization precision.
+3. `--outfile` is the output filename; you can customize the path.
+
+```bash
+# No quantization, keep full model quality
+python convert_hf_to_gguf.py /PATH/TO/gelab-zero-4b-preview --outtype f16 --verbose --outfile gelab-zero-4b-preview_f16.gguf
+
+# Quantized (faster but lossy; known issue: <THINK> may become <THIN>)
+python convert_hf_to_gguf.py /PATH/TO/gelab-zero-4b-preview --outtype q8_0 --verbose --outfile gelab-zero-4b-preview_q8_0.gguf
+```
+
+The INT8-quantized GGUF file is ~4.28 GB for reference.
+
+GELab-Zero-4B-preview is a vision model, so you also need to export an `mmproj` file:
+
+```bash
+# INT8 quantization for mmproj
+python convert_hf_to_gguf.py /PATH/TO/gelab-zero-4b-preview --outtype q8_0 --verbose --outfile gelab-zero-4b-preview_q8_0_mmproj.gguf --mmproj
+```
+
+The INT8-quantized mmproj GGUF file is ~454 MB for reference.
+
+#### Step 2: Serve locally with Jan
+
+You can use any llama.cpp-compatible client to spin up a local API service; here we use [Jan](https://github.com/janhq/jan) as an example:
+
+Download the [Jan](https://github.com/janhq/jan/releases) client and install it.
+
+Go to Settings → Model Provider → choose llama.cpp, then import the models:
+
+![Import model](images/jan_1.png)
+
+Select the two GGUF files you just converted:
+
+![Import model](images/jan_2.png)
+
+Back in the model UI, click `Start`.
+
+Create a chat to verify the model runs correctly:
+
+![test model](images/jan_3.png)
+
+Once tokens are streaming normally, start the local API server.
+
+Go to Settings → Local API Server, create an API key under server configuration, then launch the service:
+
+![make API service](images/jan_4.png)
+
+#### Step 3: Adjust GELab-Zero Agent model config
+
+llama.cpp’s service differs slightly from Ollama, so you must tweak the model config in GELab-Zero Agent. Two places:
+
+1. In `model_config.yaml`, update the port and API key (use the key you just created):
+
+```yaml
+local:
+    api_base: "http://localhost:1337/v1"
+    api_key: "YOUR_KEY"
+```
+
+2. In `examples/run_single_task.py`, remove any parameter suffix from the model name (line 21):
+
+```python
+local_model_config = {
+    "task_type": "parser_0922_summary",
+    "model_config": {
+        "model_name": "gelab-zero",
+        "model_provider": "local",
+        "args": {
+            "temperature": 0.1,
+            "top_p": 0.95,
+            "frequency_penalty": 0.0,
+            "max_tokens": 4096,
+        },
+```
+
+---
+
 ## 📝 Citation
 
 If you find GELab-Zero useful for your research, please consider citing our work :)
@@ -497,4 +593,3 @@ You can contact us and communicate with us by joining our WeChat group:
     <img src="https://api.star-history.com/svg?repos=stepfun-ai/gelab-zero&type=Date" alt="Star History Chart" width="600">
   </a>
 </div>
-

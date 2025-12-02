@@ -237,6 +237,8 @@ conda activate gelab-zero
 
 我们验证了两种主流的本地 LLM 推理部署方案：ollama 和 vllm。个人用户推荐使用 ollama 方案；企业用户或具备一定技术背景的用户可以选择 vllm 方案，以获得更稳定的推理服务。
 
+ollama 部署在某些 Mac 设备可能无法正常运行（表征是吐 token 特慢，原因待进一步排查），可使用 llama.cpp 部署。
+
 #### Step 1.1: Ollama 搭建（推荐个人用户）
 <!-- https://ollama.com/ -->
 
@@ -420,6 +422,104 @@ streamlit run --server.address 127.0.0.1 visualization/main_page.py --server.por
 每次任务执行都会生成一个唯一的 session ID，可在可视化界面中通过该 ID 查询并展示对应的任务轨迹。
 
 带有点击、滑动等坐标点的动作，会在截图上进行标记，以便更直观地理解 Agent 的行为。
+
+### （可选）llama.cpp 部署
+
+> 确保你已经下载了 GELab-Zero-4B-preview 模型到本地
+
+#### Step 1：使用 llama.cpp 转化模型为 GGUF 格式
+
+从 llama.cpp 官方仓库 Clone 代码
+
+```bash
+git clone https://github.com/ggerganov/llama.cpp.git
+cd llama.cpp
+pip install -r requirements.txt
+# 如果依赖有冲突，Conda 搞个虚拟环境
+```
+
+将模型转换为 GGUF 格式，指令参数：
+
+1. 第一个路径为你从 Huggingface 下载的 GELab-Zero-4B-preview 路径
+2. `--outtype`参数为量化精度；
+3. `--outfile`参数为输出文件名，可以自定义路径
+
+```bash
+# 如果不量化，保留模型的效果
+python convert_hf_to_gguf.py /PATH/TO/gelab-zero-4b-preview  --outtype f16 --verbose --outfile gelab-zero-4b-preview_f16.gguf
+
+# 如果需要量化（加速并有损效果，已知问题是会把<THINK>错写为<THIN>），直接执行下面脚本
+python convert_hf_to_gguf.py /PATH/TO/gelab-zero-4b-preview  --outtype q8_0 --verbose --outfile gelab-zero-4b-preview_q8_0.gguf
+```
+
+INT8 量化等级转换的 GGUF 格式文件大小为 4.28G，供参考。
+
+GELab-Zero-4B-preview 是视觉模型，所以还需要再导出一个`mmproj`文件，指令如下：
+
+```bash
+# 此为 INT8 量化脚本
+python convert_hf_to_gguf.py /PATH/TO/gelab-zero-4b-preview  --outtype q8_0 --verbose --outfile gelab-zero-4b-preview_q8_0_mmproj.gguf --mmproj
+```
+
+INT8 量化等级转换的 GGUF 格式大小为 454M，供参考。
+
+#### Step 2：使用 Jan 本地部署服务
+
+你可以使用任意支持 llama.cpp 的客户端在本地拉起 API 服务，以下以 [Jan](https://github.com/janhq/jan) 为例：
+
+下载[jan](https://github.com/janhq/jan/releases)客户端，安装。
+
+进入设置-模型提供商-选择llama.cpp，导入模型
+
+![导入模型](images/jan_1.png)
+
+依次选择刚刚转换的两个 GGUF 文件
+
+![导入模型](images/jan_2.png)
+
+回到模型界面后，记得点一下`开始`
+
+创建一个聊天，测试一下模型是否能正常运营。
+
+![测试模型](images/jan_3.png)
+
+确保模型可正常吐 token 后，启动本地 API 服务。
+
+进入设置-本地 API 服务，服务器配置中创建一个 API 秘钥，然后启动服务。
+
+![启动API服务](images/jan_4.png)
+
+#### Step 3：修改 GELab-Zero Agent 的模型配置
+
+llama.cpp的服务与 ollama 有些差异，需要修改 GELab-Zero Agent 代码中的模型配置，主要在以下两个地方：
+
+1. `model_config.yaml`中的端口和 API_Key，其中api_key的值为刚才启动服务时创建的秘钥。
+
+修改后：
+ 
+```yaml
+local:
+    api_base: "http://localhost:1337/v1"
+    api_key: "YOU_KEY"
+```
+
+2. `examples/run_single_task.py`示例代码中的模型名称，去掉参数后缀。
+
+```python
+# 第 21 行的模型名称修改为gelab-zero
+
+local_model_config = {
+    "task_type": "parser_0922_summary",
+    "model_config": {
+        "model_name": "gelab-zero",
+        "model_provider": "local",
+        "args": {
+            "temperature": 0.1,
+            "top_p": 0.95,
+            "frequency_penalty": 0.0,
+            "max_tokens": 4096,
+        },
+```
 
 
 
