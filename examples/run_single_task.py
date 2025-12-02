@@ -25,7 +25,13 @@ local_model_config = {
             "top_p": 0.95,
             "frequency_penalty": 0.0,
             "max_tokens": 4096,
-        }
+        },
+        
+        # optional to resize image
+        # "resize_config": {
+        #     "is_resize": True,
+        #     "target_image_size": (756, 756)
+        # }
     },
 
     "max_steps": 400,

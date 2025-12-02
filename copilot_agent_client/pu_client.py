@@ -132,7 +132,7 @@ def evaluate_task_on_device(agent_server, device_info, task, rollout_config, ext
 
         image_path = capture_screenshot(device_id, "tmp_screenshot", print_command=False)
 
-        image_b64_url = make_b64_url(image_path)
+        image_b64_url = make_b64_url(image_path, resize_config=rollout_config['model_config'].get("resize_config", None))
         smart_remove(image_path)
         
         payload = {
