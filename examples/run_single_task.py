@@ -1,6 +1,8 @@
 import os
 import sys
 import time
+import random # 引入 random 用于模拟 Token 数量
+
 if "." not in sys.path:
     sys.path.append(".")
 
@@ -26,6 +28,7 @@ local_model_config = {
             "frequency_penalty": 0.0,
             "max_tokens": 4096,
         },
+
         
         # optional to resize image
         # "resize_config": {
@@ -36,26 +39,64 @@ local_model_config = {
 
     "max_steps": 400,
     "delay_after_capture": 2,
-    "debug": False
+    "debug": False,
+    "stream" : True,
 }
 
 
-# ===== 新增：用于记录每步耗时 =====
+# ===== 全局变量：用于记录每步耗时和Token消耗 =====
 _step_times = []
+_total_input_tokens = 0
+_total_output_tokens = 0
 
 
-# ===== 新增：包装 automate_step 方法 =====
+# ===== 新增：Token 模拟函数 =====
+# 用于模拟模型在每一步的 Token 消耗。请根据实际情况调整这些范围。
+def simulate_token_usage():
+    # 假设输入 Token (屏幕截图、DOM、历史等) 范围
+    input_tokens = random.randint(1500, 2000) 
+    # 假设输出 Token (生成的动作、解释文本) 范围
+    output_tokens = random.randint(50, 150)
+    return input_tokens, output_tokens
+
+
+# ===== 核心修改：包装 automate_step 方法，处理 Token 消耗信息和耗时 =====
 def wrap_automate_step_with_timing(server_instance):
     original_method = server_instance.automate_step
 
     def timed_automate_step(payload):
+        # 必须在内层函数中声明 global，才能修改模块级别的变量
+        global _total_input_tokens, _total_output_tokens
+        
         step_start = time.time()
+        result = {}
         try:
+            # 1. 执行原始的自动化步骤
             result = original_method(payload)
+            
+            # 2. 【核心修改】不从 result 中提取，而是调用模拟函数获取 Token 
+            input_tokens, output_tokens = simulate_token_usage()
+
+            # 3. 累加总 Token
+            _total_input_tokens += input_tokens
+            _total_output_tokens += output_tokens
+
+            # 4. 打印每步 Token 消耗
+            print(f"--- Step {len(_step_times) + 1} Tokens (SIMULATED) ---")
+            print(f"Input Tokens: {input_tokens}, Output Tokens: {output_tokens}, Total Step Tokens: {input_tokens + output_tokens}")
+            print(f"------------------------------------")
+            
+        except Exception as e:
+            # 打印导致错误的具体信息，然后重新抛出异常
+            print(f"An error occurred during step automation: {e}")
+            raise
+            
         finally:
             duration = time.time() - step_start
             _step_times.append(duration)
+            # 打印每步耗时
             print(f"Step {len(_step_times)} took: {duration:.2f} seconds")
+
         return result
 
     # 替换实例方法
@@ -71,29 +112,33 @@ if __name__ == "__main__":
         "device_wm_size": device_wm_size
     }
 
-    # task = "打开微信，给柏茗，发helloworld"
-    # task = "打开 给到 app，在主页，下滑寻找，员工权益-奋斗食代，帮我领劵。如果不能领取就退出。"
-    # task = "open wechat to send a message 'helloworld' to 'TKJ'"
-    task = "去淘宝帮我买本书"
+    task = "在微信里搜索数字生命卡兹克账号，并关注账号"
 
     tmp_rollout_config = local_model_config
     l2_server = LocalServer(tmp_server_config)
 
-    # 注入计时逻辑
+    # 注入计时和 Token 统计逻辑
     wrap_automate_step_with_timing(l2_server)
+    
     # 执行任务并计总时间
     total_start = time.time()
+    
     # Disable auto reply
     evaluate_task_on_device(l2_server, device_info, task, tmp_rollout_config, reflush_app=True)
+    
     total_time = time.time() - total_start
 
-    # 在最后加一行总时间
-    print(f"总计执行时间为 {total_time} 秒")
+    # 在最后打印总结
+    print("\n" + "="*50)
+    print(f" 任务执行完毕！")
+    print("-" * 20)
+    print(f"总计执行时间为 {total_time:.2f} 秒")
+    print(f"总步数: {len(_step_times)}")
+    print("-" * 20)
+    print(f"总计输入 Token (模拟): {_total_input_tokens}")
+    print(f"总计输出 Token (模拟): {_total_output_tokens}")
+    print(f"总 Token 消耗 (模拟): {_total_input_tokens + _total_output_tokens}")
+    print("="*50)
     
     pass
-    # Enable auto reply
-    # evaluate_task_on_device(l2_server, device_info, task, tmp_rollout_config, reflush_app=True, auto_reply=True)
-
-
-
     pass
