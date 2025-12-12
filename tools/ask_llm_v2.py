@@ -16,7 +16,7 @@ def ask_llm_anything(model_provider, model_name, messages, args= {
     "temperature": 0.5,
     "top_p": 1.0,
     "frequency_penalty": 0.0,
-}):
+}, resize_config=None):
 
     with smart_open("model_config.yaml", "r") as f:
         model_config = yaml.safe_load(f)
@@ -65,6 +65,22 @@ def ask_llm_anything(model_provider, model_name, messages, args= {
                     del content['image_b64']
                     content['image_url'] = {"url": "data:image/png;base64," + b64}
                     content['type'] = "image_url"
+                
+                if resize_config is not None and resize_config.get("is_resize", False) == True:
+                    image_url = content['image_url']['url']
+                    image_b64_url = image_url.split(",", 1)[1]
+                    image_data = base64.b64decode(image_b64_url)
+                    from PIL import Image
+                    import io
+                    image = Image.open(io.BytesIO(image_data))
+                    image = image.resize(size= resize_config['target_image_size'])
+                    image_data = io.BytesIO()
+                    image = image.convert('RGB')
+                    image.save(image_data, format="JPEG", quality=85)
+                    image_data = image_data.getvalue()
+                    b64_image = base64.b64encode(image_data).decode('utf-8')
+                    content['image_url']['url'] = f"data:image/jpeg;base64,{b64_image}"
+
 
         return messages
     messages = preprocess_messages(messages)
