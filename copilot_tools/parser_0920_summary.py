@@ -338,7 +338,7 @@ class Parser0920Summary():
             }
         ]
         # print(f"=============================================messages: \n\n{messages}\n=============================================")
-        print(f"{'='*45}\nmessages:\n{messages}\n{'='*45}")
+        # print(f"{'='*45}\nmessages:\n{messages}\n{'='*45}")
 
         if return_sft:
             sft = messages2sft(messages)
