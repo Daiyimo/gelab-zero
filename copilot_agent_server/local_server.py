@@ -206,7 +206,8 @@ class LocalServer(BaseCopilotServer):
         logger.log_str(log_message, is_print=self.debug)
 
         return {
-            "action": action
+            "action": action,
+            "current_step": current_ste + 1
         }
         
     
