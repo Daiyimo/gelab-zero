@@ -108,6 +108,19 @@ def ask_llm_anything(model_provider, model_name, messages, args= {
     if reasoning is not None and len(reasoning) > 0:
         result = "<think>" + reasoning + "</think>" + "\n" + result
 
-    print(f"LLM {model_name} says:\n--------------start--------------\n{result}\n---------------end---------------")
+    # ===== 美化：分行显示字段 =====
+    pretty_result = result
+    for keyword in ["explain:", "action:", "point:", "value:", "summary:"]:
+        pretty_result = pretty_result.replace(keyword, "\n" + keyword)
+    pretty_result = pretty_result.lstrip('\n')
+    import re
+    pretty_result = re.sub(r'</THINK>\s*\n\s*explain:', '</THINK>\nexplain:', pretty_result)
+
+    # 可选：合并 <THINK> 内部的换行（让 THINK 内容单行显示，更整洁）
+    pretty_result = re.sub(r'(<THINK>)(.*?)(</THINK>)', 
+                          lambda m: m.group(1) + m.group(2).replace('\n', ' ') + m.group(3),
+                          pretty_result, flags=re.DOTALL)
+
+    print(f"LLM {model_name} says:\n--------------start--------------\n{pretty_result}\n---------------end---------------")
 
     return result
