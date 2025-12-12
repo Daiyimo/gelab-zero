@@ -185,6 +185,43 @@ def _convert_point_to_realworld_point(point, wm_size):
     real_y = (float(y) / 1000) * wm_size[1]
     return (real_x, real_y)
 
+def _detect_screen_orientation(device_id):
+    """
+    Detect the screen orientation of the specified device.
+    adb shell dumpsys input | grep -m 1 -o -E "orientation=[0-9]" | head -n 1 | grep -m 1 -o -E "[0-9]"
+    """
+    # adb_command = _get_adb_command(device_id)
+    if device_id is None:
+        adb_command = "adb"
+    else:
+        adb_command = f"adb -s {device_id}"
+    if os.name == 'nt':
+        # Windows
+        command = f'{adb_command}' + ''' shell dumpsys input | Select-String 'orientation=\d+' | Select -First 1 | % { $_.Matches.Value -replace 'orientation=', '' }'''
+        
+        # 使用 subprocess 运行 PowerShell 命令
+        result = subprocess.run(
+            ["powershell.exe", "-Command", command],  # 核心参数
+            capture_output=True,  # 捕获 stdout/stderr（可选）
+            encoding="utf-8",     # 编码（避免乱码）
+            shell=False,          # 无需开启 shell（PowerShell 本身就是解释器）
+            check=False           # 是否抛出非0退出码异常（可选）
+        )
+
+    else:
+        # Unix/Linux/Mac
+        command = f'''{adb_command} shell dumpsys input | grep -m 1 -o -E "orientation=[0-9]" | head -n 1 | grep -m 1 -o -E "[0-9]"'''
+
+        result = subprocess.run(command, shell=True, capture_output=True, text=True)
+
+
+    result_str = result.stdout.strip()
+
+    result = int(result_str.strip())
+
+    return result
+
+
 def act_on_device(frontend_action, device_id, wm_size, print_command = False, reflush_app = True):
     """
     Execute the frontend action on the device.
@@ -220,6 +257,12 @@ def act_on_device(frontend_action, device_id, wm_size, print_command = False, re
 
     if action_type == "CLICK":
         assert "point" in frontend_action, "Missing point in CLICK action"
+
+        orientation = _detect_screen_orientation(device_id)
+
+        if orientation in [1, 3]:
+            wm_size = (wm_size[1], wm_size[0])
+
         x, y = _convert_point_to_realworld_point(frontend_action["point"], wm_size)
 
         cmd = f"adb -s {device_id} shell input tap {x} {y}"
@@ -236,7 +279,6 @@ def act_on_device(frontend_action, device_id, wm_size, print_command = False, re
         x, y = _convert_point_to_realworld_point(frontend_action["point"], wm_size)
         duration = frontend_action["duration"]
         cmd = f"adb -s {device_id} shell app_process -Djava.class.path=/data/local/tmp/yadb /data/local/tmp com.ysbing.yadb.Main -touch {x} {y} {int(duration * 1000)}"
-
         if print_command:
             print(f"Executing command: {cmd}")
         result = subprocess.run(cmd, shell=True, capture_output=True, text=True)
@@ -267,7 +309,9 @@ def act_on_device(frontend_action, device_id, wm_size, print_command = False, re
             return text
 
 
-        cmd = f"adb -s {device_id} shell app_process -Djava.class.path=/data/local/tmp/yadb /data/local/tmp com.ysbing.yadb.Main -keyboard '{preprocess_text_for_adb(value)}'"
+        # cmd = f"adb -s {device_id} shell app_process -Djava.class.path=/data/local/tmp/yadb /data/local/tmp com.ysbing.yadb.Main -keyboard '{preprocess_text_for_adb(value)}'"
+        cmd = f' adb -s {device_id} shell am broadcast -a ADB_INPUT_TEXT --es msg "{value}"'
+ 
         if print_command:
             print(f"Executing command: {cmd}")
 
@@ -321,7 +365,8 @@ def act_on_device(frontend_action, device_id, wm_size, print_command = False, re
             result = subprocess.run(cmd, shell=True, capture_output=True, text=True)
             time.sleep(1)
 
-        cmd = f"adb -s {device_id} shell monkey -p {package_name} -c android.intent.category.LAUNCHER 1"
+        # cmd = f"adb -s {device_id} shell monkey -p {package_name} -c android.intent.category.LAUNCHER 1"
+        cmd = f"adb -s {device_id} shell monkey -p {package_name} --pct-syskeys 0 -v 1"
         if print_command:
             print(f"Executing command: {cmd}")
 
