@@ -197,8 +197,8 @@ def _detect_screen_orientation(device_id):
         adb_command = f"adb -s {device_id}"
     if os.name == 'nt':
         # Windows
-        command = f'{adb_command}' + ''' shell dumpsys input | Select-String 'orientation=\d+' | Select -First 1 | % { $_.Matches.Value -replace 'orientation=', '' }'''
-        
+        # command = f'{adb_command}' + ''' shell dumpsys input | Select-String 'orientation=\d+' | Select -First 1 | % { $_.Matches.Value -replace 'orientation=', '' }'''
+        command = f'{adb_command}' + r''' shell dumpsys input | Select-String 'orientation=\d+' | Select -First 1 | % { $_.Matches.Value -replace 'orientation=', '' }'''
         # 使用 subprocess 运行 PowerShell 命令
         result = subprocess.run(
             ["powershell.exe", "-Command", command],  # 核心参数
@@ -309,8 +309,9 @@ def act_on_device(frontend_action, device_id, wm_size, print_command = False, re
             return text
 
 
-        # cmd = f"adb -s {device_id} shell app_process -Djava.class.path=/data/local/tmp/yadb /data/local/tmp com.ysbing.yadb.Main -keyboard '{preprocess_text_for_adb(value)}'"
-        cmd = f' adb -s {device_id} shell am broadcast -a ADB_INPUT_TEXT --es msg "{value}"'
+        cmd = f"adb -s {device_id} shell app_process -Djava.class.path=/data/local/tmp/yadb /data/local/tmp com.ysbing.yadb.Main -keyboard '{preprocess_text_for_adb(value)}'"
+        # 如果无法输入中文用下面这个
+        # cmd = f' adb -s {device_id} shell am broadcast -a ADB_INPUT_TEXT --es msg "{value}"'
  
         if print_command:
             print(f"Executing command: {cmd}")
