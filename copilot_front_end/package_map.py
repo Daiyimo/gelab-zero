@@ -39,6 +39,7 @@ package_name_map = {
     "点淘": "com.taobao.live",
     "录音": "com.coloros.soundrecorder",
     "哔哩哔哩": "tv.danmaku.bili",
+    "B站": "tv.danmaku.bili",
     "soul": "cn.soulapp.android",
     "高德地图": "com.autonavi.minimap",
     "懂车帝": "com.ss.android.auto",
@@ -208,7 +209,10 @@ package_name_map = {
     "osmAnd": "net.osmand",
     "给到": "com.guanaitong",
     "百词斩": "com.jiongji.andriod.card",
-
+    "应用宝": "com.tencent.android.qqdownloader",
+    "腾讯体育": "com.tencent.qqsports",
+    "元宝": "com.tencent.hunyuan.app.chat",
+    "理财通": "com.tencent.fortuneplat"
 }
 
 import difflib 
