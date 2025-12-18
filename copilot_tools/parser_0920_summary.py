@@ -23,6 +23,13 @@ from copy import deepcopy
 task_define_prompt = """你是一个手机 GUI-Agent 操作专家，你需要根据用户下发的任务、手机屏幕截图和交互操作的历史记录，借助既定的动作空间与手机进行交互，从而完成用户的任务。
 请牢记，手机屏幕坐标系以左上角为原点，x轴向右，y轴向下，取值范围均为 0-1000。
 
+# 行动原则：
+
+1. 你需要明确记录自己上一次的action，如果是滑动，不能超过5次。
+2. 你需要严格遵循用户的指令，如果你和用户进行过对话，需要更遵守最后一轮的指令
+
+# Action Space:
+
 在 Android 手机的场景下，你的动作空间包含以下9类操作，所有输出都必须遵守对应的参数要求：
 1. CLICK：点击手机屏幕坐标，需包含点击的坐标位置 point。
 例如：action:CLICK\tpoint:x,y
@@ -57,12 +64,15 @@ def make_status_prompt(task, current_image, hints, summary_history="", user_comm
     else:
         history_display = summary_history + user_comment if summary_history.strip() else "暂无历史操作"
 
+    user_instruction = f'''\n\n{user_comment}\n\n''' if user_comment != "" else ""
+    task = task + user_instruction + "指令结束\n\n"
+
     
     status_conversation = [
         {
             "type": "text",
             "text": f'''
-已知用户任务为：{task}
+已知用户指令为：{task}
 已知已经执行过的历史动作如下：{history_display}
 当前手机屏幕截图如下：
 '''
@@ -74,6 +84,7 @@ def make_status_prompt(task, current_image, hints, summary_history="", user_comm
         {
             "type": "text",
             "text": f'''
+
 在执行操作之前，请务必回顾你的历史操作记录和限定的动作空间，先进行思考和解释然后输出动作空间和对应的参数：
 1. 思考（THINK）：在 <THINK> 和 </THINK> 标签之间。
 2. 解释（explain）：在动作格式中，使用 explain: 开头，简要说明当前动作的目的和执行方式。
@@ -314,9 +325,30 @@ class Parser0920Summary():
 
         current_env = environments[-1]
 
-        user_comment = ""
-        if len(current_env['user_comment']) > 0:
-            user_comment = "用户回复说： "+ current_env['user_comment'].strip()
+        # user_comment = ""
+        # if len(current_env['user_comment']) > 0:
+            # user_comment = "用户回复说： "+ current_env['user_comment'].strip()
+
+        historica_qa = []
+
+        for idx in range(1, len(environments)):
+            prev_act = actions[idx - 1]
+            current_env = environments[idx]
+
+            if prev_act['action'] == "INFO":
+                q = prev_act['value']
+                a = current_env['user_comment'].strip()
+                historica_qa.append((q, a))
+            elif current_env['user_comment'].strip() != "":
+                q = "指令是："
+                a = current_env['user_comment'].strip()
+                historica_qa.append((q, a))
+
+        if len(historica_qa) > 0:
+            qa_prompt = "这是你和用户的对话历史： " + "\n" + "\n".join([f"你曾经提出的问题：{qa[0]}\n\n用户对你的指示：{qa[1]}" for qa in historica_qa]) + "\n\n 你需要更加注意用户最后的指示。 " if len(historica_qa) > 0 else ""
+        else:
+            qa_prompt = ""
+
 
         conversations = [
             {
@@ -328,7 +360,7 @@ class Parser0920Summary():
             current_env['image'], 
             hints,
             summary_history,
-            user_comment
+            qa_prompt
         )
 
         messages = [
