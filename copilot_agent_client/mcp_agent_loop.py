@@ -100,15 +100,15 @@ def caption_current_screenshot(current_task, current_image_url, model_config, re
             "role": "user",
             "content": [
                 {
-                    "type": "text",
-                    "text": f"请简要描述当前截图的内容，帮助完成任务：{current_task}。"
-                },
-                {
                     'type': "image_url",
                     'image_url': {
                         'url': current_image_url
                     }
-                }
+                },
+                {
+                    "type": "text",
+                    "text": f"当前的任务是：{current_task}。\n请根据任务需求，详细描述出当前截图和任务相关的部分。如果有列表，请列出所有选项。"
+                },
             ]
         }
     ]
@@ -371,8 +371,9 @@ def gui_agent_loop(
 
         history_actions.append(action)
 
+        print(f"Step {step_idx+1}/{max_steps} done.\nAction Type: {action['action_type']}, cot: {action.get('cot', '')}\nSession ID: {session_id}\n")
 
-        print(f"local:{step_idx+1}/global:{global_step_idx}/{max_steps} done. Action: {action}")
+        # print(f"local:{step_idx+1}/global:{global_step_idx}/{max_steps} done. Action: {action}")
 
         if action['action_type'].upper() in ['COMPLETE', "ABORT"]:
             stop_reason = action['action_type'].upper()
@@ -445,5 +446,3 @@ def gui_agent_loop(
     # print(f"Task {task} done in {len(history_actions)} steps. Session ID: {session_id}")
 
     return return_log
-
-
