@@ -19,8 +19,10 @@ tmp_server_config = {
 local_model_config = {
     "task_type": "parser_0922_summary",
     "model_config": {
-        "model_name": "gelab-zero-4b-preview",
-        "model_provider": "local",
+        # "model_name": "gelab-zero-4b-preview",
+        # "model_provider": "local",
+        "model_name": "step-gui",
+        "model_provider": "stepfun",
         "args": {
             "temperature": 0.1,
             "top_p": 0.95,
@@ -57,7 +59,7 @@ def wrap_automate_step_with_timing(server_instance):
     original_method = server_instance.automate_step
 
     def timed_automate_step(payload):
-        global _step_times, _total_input_tokens, _total_output_tokens  # 👈 关键修复：声明全局变量
+        global _step_times, _total_input_tokens, _total_output_tokens
         step_start = time.time()
         result = {}
         try:
@@ -93,6 +95,18 @@ if __name__ == "__main__":
     }
 
     task = "在微信里搜索数字生命卡兹克账号，并关注账号"
+
+    if len(sys.argv) < 2:
+        print("❌ 错误：未传入任务参数！")
+        print("📝 使用方法：")
+        print(f"   python {sys.argv[0]} \"你的任务描述\"")
+        print("   示例1：python script.py \"去淘宝帮我买本书\"")
+        print("   示例2：python script.py \"打开微信，给柏茗发helloworld\"")
+        sys.exit(1)  
+    
+    task = ' '.join(sys.argv[1:])
+
+
     tmp_rollout_config = local_model_config
     l2_server = LocalServer(tmp_server_config)
     
