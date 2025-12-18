@@ -9,9 +9,6 @@ from copilot_agent_server.local_server import LocalServer
 
 from copilot_agent_client.pu_client import evaluate_task_on_device
 
-from multiprocessing import Queue
-from fastmcp.utilities.types import Image as MCPImage
-
 import yaml
 
 from typing import Annotated
@@ -24,7 +21,8 @@ from mcp_server.mcp_backend_implements import (
 )
 
 mcp = FastMCP(name="Gelab-MCP-Server", instructions="""
-              This MCP server provides tools to interact with connected mobile devices using a GUI agent."""
+This MCP server provides tools to interact with connected mobile devices using a GUI agent.               
+              """
             )
 
 
@@ -53,6 +51,7 @@ def list_connected_devices() -> list:
 #         Returns:
 #             MCPImage: Screenshot image in base64 format.
 #     """
+    
 #     screenshot_b64 = get_screenshot(device_id=device_id)
 #     image_item =  MCPImage(data=screenshot_b64)
 
@@ -66,30 +65,28 @@ def ask_agent(
 
     task: Annotated[str | None, Field(description="The task that the agent needs to perform on the mobile device. if this is not None, the agent will try to perform this task. if None, the session_id must be provided to continue the previous session.")],
     
-    reset_environment: Annotated[bool, Field(description="Whether to reset the environment before executing the task, close current app, and back to home screen. If you want to execute a independent task, set this to True will make it easy to execute. If you want to continue the previous session, set this to False.")] = False,
+    # reset_environment: Annotated[bool, Field(description="Whether to reset the environment before executing the task, close current app, and back to home screen. If you want to execute a independent task, set this to True will make it easy to execute. If you want to continue the previous session, set this to False.")] = False,
 
-    max_steps: Annotated[int, Field(description="Maximum number of steps the agent can take to complete the task.")] = 10,
+    max_steps: Annotated[int, Field(description="Maximum number of steps the agent can take to complete the task.")] = 20,
 
-    session_id: Annotated[str | None, Field(description="Optional session ID to maintain context across multiple tasks.")] = None,
+    session_id: Annotated[str | None, Field(description="Optional, session ID must provide when the last task endwith INFO action and you want to reply, the session id and device id and the reply from client must be provided.")] = None,
 
     # When the INFO action is called, how to handle it.
     # 1. "auto_reply": the INFO action will be handled automatically by calling the caption model to generate image captions.
     # 2. "no_reply": the INFO action will be ignored. THE AGENT MAY GET STUCK IF THE INFO ACTION IS IGNORED.
     # 3. "manual_reply": the INFO action will cause an interruption, and the user needs to provide the reply manually by input things in server's console.
     # 4. "pass_to_client": the INFO action will be returned to the MCP client to handle it. 
-    reply_mode: Annotated[str, Field(description='''
-        How to handle the INFO action during task execution.
+#     reply_mode: Annotated[str, Field(description='''
+#         How to handle the INFO action during task execution.
         
-        Options:
-            - "auto_reply": Automatically generate image captions for INFO actions.
-            - "no_reply": Ignore INFO actions (may cause the agent to get stuck).
-            - "manual_reply": Interrupt and require user input for INFO actions.
-            - "pass_to_client": Pass INFO actions to the MCP client for handling.
-''')] = "auto_reply",
+#         Options:
+#             - "auto_reply": Automatically generate image captions for INFO actions.
+#             - "no_reply": Ignore INFO actions (may cause the agent to get stuck).
+#             - "manual_reply": Interrupt and require user input for INFO actions.
+#             - "pass_to_client": Pass INFO actions to the MCP client for handling.
+# ''')] = "auto_reply",
 
-    reply_from_client: Annotated[str | None, Field(description="If reply_mode is 'pass_to_client', this field should contain the reply from the client for the INFO action.")] = None,
-
-
+    reply_from_client: Annotated[str | None, Field(description="If the last task is ended with INFO action, and you want to give GUI agent a reply, provide the reply here. If you do so, you must provide last session id and last device id.")] = None,
 ) -> dict:
 
     """
@@ -97,9 +94,10 @@ def ask_agent(
 
 Ask the GUI agent to perform the specified task on a connected device.
 The GUI Agent can be able to understand natural language instructions and interact with the device accordingly.
-The agent will be able to execute a high-level task description by performing a sequence of low-level actions on the device.
+The agent will be able to execute a high-level task description，if you have any additional requirements, write them down in detail at tast string.
 
-## For high-level tasks, the agent has the below limited capabilities:
+
+## The agent has the below limited capabilities:
 
 1. The task must be related to an app that is already installed on the device. for example, "打开微信，帮我发一条消息给张三，说今天下午三点开会"; "帮我在淘宝上搜索一款性价比高的手机，并加入购物车"; "to purchase an ea on Amazon".
 
@@ -107,17 +105,13 @@ The agent will be able to execute a high-level task description by performing a 
 
 3. The agent may not be able to handle complex tasks that require multi-step reasoning or planning. for example. You may need to break down complex tasks into simpler sub-tasks and ask the agent to perform them sequentially. For example, instead of asking the agent to "plan a trip to Paris for xxx", you can ask it to "search for flights to Paris on xxx app", "find hotels in Paris on xxx app", make the plan yourself and ask agent to "sent the plan to xxx via IM app like wechat".
 
-## For low-level tasks, the agent can perform the below actions:
+4. The agent connot accept multimodal inputs now. if you want to provide additional information like screenshot captions, please include them in the task description.
 
-1. CLICK: Click on a specific point on the screen, you need to ask the agent to click the specific thing, e.g., "点击搜索按钮", "点击发送按钮", "点击确认按钮", etc.
+## Usage guidance：
 
-2. SWIPE: Swipe from one point to another point on the screen, you need to ask the agent to swipe from one specific point to another, e.g., "在屏幕主界面向下滑动以刷新页面", "向左滑动以查看下一张图片", etc.
+1. you should never directly ask an Agent to pay or order anything. If user want to make a purchase, you should ask agent to stop brfore ordering/paying, and let user to order/pay.
 
-3. LONG_PRESS: Long press on a specific point on the screen, you need to ask the agent to long press on a specific thing, e.g., "长按应用图标以打开菜单", "长按图片以查看大图", etc.
-
-4. INPUT_TEXT: Input text into a specific text field, you need to ask the agent to input specific text into a specific field, e.g., "在搜索框中输入'天气预报'", "在消息输入框中输入'你好，张三'", etc.
-
-5. AWAKE: to open some app.
+2. tell the agent, if human verification is appeared during the task execution, the agent should ask Client. when the you see the INFO, you should ask user to handle the verification manually. after user says "done", you can continue the task with the session_id and device_id and ask the agent to continue in reply_from_client.
 
 Returns:
     dict: Execution log containing details of the task execution.
@@ -131,6 +125,18 @@ Returns:
         - task: The original task description provided to the agent.
     """
 
+    reply_mode = "pass_to_client"
+
+    if task is not None:
+        assert session_id is None, "If task is provided, session_id must be None."
+        # New task, so reset_environment is True
+        reset_environment = True
+    else:
+        assert session_id is not None, "If task is None, session_id must be provided to continue the previous session."
+        # Continuing previous session, so reset_environment is False
+        reset_environment = False
+    
+
     return_log = execute_task(
         device_id=device_id,
 
@@ -139,12 +145,17 @@ Returns:
         reset_environment=reset_environment,
         max_steps=max_steps,
 
-        enable_intermediate_logs=False,
-        enable_intermediate_image_caption=False,
+        # enable_intermediate_logs=False,
+        # enable_intermediate_image_caption=False,
+# 
+        enable_intermediate_logs=True,
+        enable_intermediate_image_caption=True,
+
         enable_intermediate_screenshots=False,
 
         enable_final_screenshot=False,
-        enable_final_image_caption=False,
+        # enable_final_image_caption=False,
+        enable_final_image_caption=True,
 
         reply_mode=reply_mode,
 
