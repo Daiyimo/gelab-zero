@@ -7,7 +7,7 @@ if "." not in sys.path:
 import json
 from PIL import Image
 import io
-from collections import OrderedDict  # ← 新增导入
+from collections import OrderedDict
 
 from tools.image_tools import draw_points, make_b64_url
 from copilot_front_end.mobile_action_helper import capture_screenshot, dectect_screen_on
@@ -82,10 +82,14 @@ def evaluate_task_on_device(agent_server, device_info, task, rollout_config, ext
         if not isinstance(act, (dict, OrderedDict)):
             return str(act)
         lines = []
-        # Handle cot as <THINK>
+        # 不再打印 <THINK> 标签
         if 'cot' in act and act['cot']:
             cot_clean = str(act['cot']).replace('\n', ' ').replace('\r', ' ')
-            lines.append(f"<THINK> {cot_clean} </THINK>")
+            # 移除 <THINK> 和 </THINK> 标签
+            import re
+            cot_clean = re.sub(r'<\s*/?THINK\s*>', '', cot_clean, flags=re.IGNORECASE).strip()
+            if cot_clean:
+                lines.append(f"cot: {cot_clean}")
         # Define field order for readability
         field_order = ['explain', 'action', 'value', 'point', 'point1', 'point2', 'return', 'summary']
         for key in field_order:
@@ -124,6 +128,10 @@ def evaluate_task_on_device(agent_server, device_info, task, rollout_config, ext
     history_actions = []
 
     for step_idx in range(max_steps):
+        # 打印步骤开始分隔符
+        step_label = f" Step {step_idx+1} start "
+        print(f"\n{step_label:-^50}")
+        
         if not dectect_screen_on(device_id):
             print("Screen is off, turn on the screen first")
             break
@@ -163,12 +171,14 @@ def evaluate_task_on_device(agent_server, device_info, task, rollout_config, ext
 
         action = agent_server.automate_step(payload)['action']
         action = uiTars_to_frontend_action(action)
-        act_on_device(action, device_id, device_wm_size, print_command=True, reflush_app=reflush_app)
+        act_on_device(action, device_id, device_wm_size, print_command=True, reflush_app=reflush_app, print_executing_command=True)
         history_actions.append(action)
 
         # ===== 替换原始打印：使用美观格式 =====
-        print(f"Step {step_idx+1}/{max_steps} done. Action:")
+        print(f"Action: {action['action_type']}")
         print(_pretty_format_action(action))
+        step_end_label = f" Step {step_idx+1} end "
+        print(f"{step_end_label:-^50}")
         # ===================================
 
         if action['action_type'].upper() in ['COMPLETE', "ABORT"]:
@@ -186,5 +196,5 @@ def evaluate_task_on_device(agent_server, device_info, task, rollout_config, ext
 
     return_log['stop_reason'] = stop_reason
     return_log['stop_steps'] = step_idx + 1
-    print(f"Task {task} done in {len(history_actions)} steps. Session ID: {session_id}")
+    print(f"\ndone in {len(history_actions)} steps.\nSession ID: {session_id}")
     return return_log
