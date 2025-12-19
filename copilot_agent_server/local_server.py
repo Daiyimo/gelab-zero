@@ -186,7 +186,6 @@ class LocalServer(BaseCopilotServer):
 
         action = parser.str2action(response)
 
-
         log_message = {
             "environment": current_env,
             "action": action,
