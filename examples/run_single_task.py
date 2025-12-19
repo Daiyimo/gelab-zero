@@ -24,7 +24,7 @@ local_model_config = {
         "model_name": "step-gui",
         "model_provider": "stepfun",
         "args": {
-            "temperature": 0.2,
+            "temperature": 0.1,
             "top_p": 0.95,
             "frequency_penalty": 0.0,
             "max_tokens": 4096,
