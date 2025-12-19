@@ -265,6 +265,9 @@ def gui_agent_loop(
     global_step_idx = 0
     # restart the steps from 0, even continuing an existing session
     for step_idx in range(max_steps):
+        # 打印步骤开始分隔符
+        step_label = f" Step {step_idx+1} start "
+        print(f"\n{step_label:-^50}")
 
         if not dectect_screen_on(device_id):
             print("Screen is off, turn on the screen first")
@@ -371,7 +374,17 @@ def gui_agent_loop(
 
         history_actions.append(action)
 
-        print(f"Step {step_idx+1}/{max_steps} done.\nAction Type: {action['action_type']}, cot: {action.get('cot', '')}\nSession ID: {session_id}\n")
+        # 清理 cot 中的 <THINK> 标签用于打印
+        cot_display = action.get('cot', '')
+        if cot_display:
+            import re
+            cot_display = re.sub(r'<\s*/?THINK\s*>', '', cot_display, flags=re.IGNORECASE).strip()
+        
+        print(f"Action: {action['action_type']}")
+        if cot_display:
+            print(f"cot: {cot_display}")
+        step_end_label = f" Step {step_idx+1} end "
+        print(f"{step_end_label:-^50}")
 
         # print(f"local:{step_idx+1}/global:{global_step_idx}/{max_steps} done. Action: {action}")
 
