@@ -248,7 +248,12 @@ class Parser0920Summary():
 
             kvs.append(f"{key}:{value}")
 
-        action_str = f"<THINK> {action['cot']} </THINK>\n" + "\t".join(kvs) + "\n"
+        # 不再输出 <THINK> 标签，直接输出 cot 内容
+        cot_content = action.get('cot', '').strip()
+        if cot_content:
+            action_str = f"cot:{cot_content}\n" + "\t".join(kvs) + "\n"
+        else:
+            action_str = "\t".join(kvs) + "\n"
         return action_str
     
 
