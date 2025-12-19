@@ -99,7 +99,8 @@ def init_device(device_id, print_command = False):
 
         subprocess.run(command, shell=True, capture_output=True, text=True)
     else:
-        print("yadb is already installed on the device.")
+        # print("yadb is already installed on the device.")
+        pass
 
     press_home_key(device_id, print_command=print_command)
 
