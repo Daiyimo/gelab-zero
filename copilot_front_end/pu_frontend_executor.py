@@ -222,7 +222,7 @@ def _detect_screen_orientation(device_id):
     return result
 
 
-def act_on_device(frontend_action, device_id, wm_size, print_command = False, reflush_app = True):
+def act_on_device(frontend_action, device_id, wm_size, print_command = False, reflush_app = True, print_executing_command = False):
     """
     Execute the frontend action on the device.
     1. # CLICK(point=(x,y))
@@ -266,7 +266,7 @@ def act_on_device(frontend_action, device_id, wm_size, print_command = False, re
         x, y = _convert_point_to_realworld_point(frontend_action["point"], wm_size)
 
         cmd = f"adb -s {device_id} shell input tap {x} {y}"
-        if print_command:
+        if print_executing_command:
             print(f"Executing command: {cmd}")
         
         result = subprocess.run(cmd, shell=True, capture_output=True, text=True)
@@ -279,7 +279,7 @@ def act_on_device(frontend_action, device_id, wm_size, print_command = False, re
         x, y = _convert_point_to_realworld_point(frontend_action["point"], wm_size)
         duration = frontend_action["duration"]
         cmd = f"adb -s {device_id} shell app_process -Djava.class.path=/data/local/tmp/yadb /data/local/tmp com.ysbing.yadb.Main -touch {x} {y} {int(duration * 1000)}"
-        if print_command:
+        if print_executing_command:
             print(f"Executing command: {cmd}")
         result = subprocess.run(cmd, shell=True, capture_output=True, text=True)
 
@@ -295,7 +295,7 @@ def act_on_device(frontend_action, device_id, wm_size, print_command = False, re
             if "point" in frontend_action:
                 x, y = _convert_point_to_realworld_point(frontend_action["point"], wm_size)
                 cmd = f"adb -s {device_id} shell input tap {x} {y}"
-                if print_command:
+                if print_executing_command:
                     print(f"Executing command: {cmd}")
                 result = subprocess.run(cmd, shell=True, capture_output=True, text=True)
                 time.sleep(1)
@@ -313,7 +313,7 @@ def act_on_device(frontend_action, device_id, wm_size, print_command = False, re
         # 如果无法输入中文用下面这个
         # cmd = f' adb -s {device_id} shell am broadcast -a ADB_INPUT_TEXT --es msg "{value}"'
  
-        if print_command:
+        if print_executing_command:
             print(f"Executing command: {cmd}")
 
         result = subprocess.run(cmd, shell=True, capture_output=True, text=True)
@@ -344,7 +344,7 @@ def act_on_device(frontend_action, device_id, wm_size, print_command = False, re
             raise ValueError(f"Invalid direction: {direction}")
         
         cmd = f"adb -s {device_id} shell input swipe {x1} {y1} {x2} {y2} 1200"
-        if print_command:
+        if print_executing_command:
             print(f"Executing command: {cmd}")
 
         result = subprocess.run(cmd, shell=True, capture_output=True, text=True)
@@ -360,7 +360,7 @@ def act_on_device(frontend_action, device_id, wm_size, print_command = False, re
         
         if reflush_app:
             cmd = f"adb -s {device_id} shell am force-stop {package_name}"
-            if print_command:
+            if print_executing_command:
                 print(f"Executing command: {cmd}")
 
             result = subprocess.run(cmd, shell=True, capture_output=True, text=True)
@@ -368,7 +368,7 @@ def act_on_device(frontend_action, device_id, wm_size, print_command = False, re
 
         # cmd = f"adb -s {device_id} shell monkey -p {package_name} -c android.intent.category.LAUNCHER 1"
         cmd = f"adb -s {device_id} shell monkey -p {package_name} --pct-syskeys 0 -v 1"
-        if print_command:
+        if print_executing_command:
             print(f"Executing command: {cmd}")
 
         result = subprocess.run(cmd, shell=True, capture_output=True, text=True)
@@ -383,7 +383,7 @@ def act_on_device(frontend_action, device_id, wm_size, print_command = False, re
         
         duration = frontend_action.get("duration", 1.5)
         cmd = f"adb -s {device_id} shell input swipe {x1} {y1} {x2} {y2} {int(duration * 1000)}"
-        if print_command:
+        if print_executing_command:
             print(f"Executing command: {cmd}")
 
         result = subprocess.run(cmd, shell=True, capture_output=True, text=True)
@@ -392,7 +392,7 @@ def act_on_device(frontend_action, device_id, wm_size, print_command = False, re
     
     elif action_type == "BACK":
         cmd = f"adb -s {device_id} shell input keyevent 4"
-        if print_command:
+        if print_executing_command:
             print(f"Executing command: {cmd}")
 
         result = subprocess.run(cmd, shell=True, capture_output=True, text=True)
@@ -401,7 +401,7 @@ def act_on_device(frontend_action, device_id, wm_size, print_command = False, re
     
     elif action_type == "HOME":
         cmd = f"adb -s {device_id} shell input keyevent 3"
-        if print_command:
+        if print_executing_command:
             print(f"Executing command: {cmd}")
 
         result = subprocess.run(cmd, shell=True, capture_output=True, text=True)
@@ -447,7 +447,7 @@ def act_on_device(frontend_action, device_id, wm_size, print_command = False, re
 
         key_event = key_event_map[key.lower()]
         cmd = f"adb -s {device_id} shell input keyevent {key_event}"
-        if print_command:
+        if print_executing_command:
             print(f"Executing command: {cmd}")
 
         result = subprocess.run(cmd, shell=True, capture_output=True, text=True)
