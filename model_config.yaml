@@ -4,4 +4,11 @@ local:
 
 stepfun:
     api_base: "https://api.stepfun.com/v1"
-    api_key: "EMPTY"
+    api_key: "YOUR_API_KEY_HERE"
+
+# judge section: change model_name here to switch judge model, no code change needed
+# to use a different provider: add a new section and update judge_model_provider param
+judge:
+    api_base: "https://api.stepfun.com/v1"
+    api_key: "YOUR_API_KEY_HERE"
+    model_name: "step-3.6"
